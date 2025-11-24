@@ -3,7 +3,7 @@ name: Build Docker Image
 on:
   push:
     branches:
-      - dbfix # 当代码推送到 dev 分支时触发
+      # - dbfix # 当代码推送到 dev 分支时触发
     tags:
       - "*"
 jobs:
