@@ -110,6 +110,10 @@ const channelTypeOptions = ref<{ label: string; value: string }[]>([]);
 const configOptions = ref<GroupConfigOption[]>([]);
 const channelTypesFetched = ref(false);
 const configOptionsFetched = ref(false);
+const keySelectionStrategyOptions = [
+  { label: "round_robin", value: "round_robin" },
+  { label: "sticky", value: "sticky" },
+];
 
 // 跟踪用户是否已手动修改过字段（仅在新增模式下使用）
 const userModifiedFields = ref({
@@ -452,6 +456,10 @@ function handleConfigKeyChange(index: number, key: string) {
 const getConfigOption = (key: string) => {
   return configOptions.value.find(opt => opt.key === key);
 };
+
+function isKeySelectionStrategyConfig(key: string): boolean {
+  return key === "key_selection_strategy";
+}
 
 // 关闭弹窗
 function handleClose() {
@@ -919,6 +927,12 @@ async function handleSubmit() {
                               v-else-if="typeof configItem.value === 'boolean'"
                               v-model:value="configItem.value"
                               size="small"
+                            />
+                            <n-select
+                              v-else-if="isKeySelectionStrategyConfig(configItem.key)"
+                              v-model:value="configItem.value as string"
+                              :options="keySelectionStrategyOptions"
+                              :placeholder="t('keys.paramValue')"
                             />
                             <n-input
                               v-else

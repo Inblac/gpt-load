@@ -126,7 +126,7 @@ func (ps *ProxyServer) executeRequestWithRetry(
 ) {
 	cfg := group.EffectiveConfig
 
-	apiKey, err := ps.keyProvider.SelectKey(group.ID)
+	apiKey, err := ps.keyProvider.SelectKeyWithStrategy(group)
 	if err != nil {
 		logrus.Errorf("Failed to select a key for group %s on attempt %d: %v", group.Name, retryCount+1, err)
 		response.Error(c, app_errors.NewAPIError(app_errors.ErrNoKeysAvailable, err.Error()))
@@ -235,6 +235,9 @@ func (ps *ProxyServer) executeRequestWithRetry(
 		}
 
 		// 使用解析后的错误信息更新密钥状态
+		if !app_errors.IsUnCounted(parsedError) {
+			ps.keyProvider.ClearStickyKey(group.ID)
+		}
 		ps.keyProvider.UpdateStatus(apiKey, group, false, parsedError)
 
 		// 判断是否为最后一次尝试

@@ -17,6 +17,11 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	KeySelectionStrategyRoundRobin = "round_robin"
+	KeySelectionStrategySticky     = "sticky"
+)
+
 type KeyProvider struct {
 	db              *gorm.DB
 	store           store.Store
@@ -31,6 +36,20 @@ func NewProvider(db *gorm.DB, store store.Store, settingsManager *config.SystemS
 		store:           store,
 		settingsManager: settingsManager,
 		encryptionSvc:   encryptionSvc,
+	}
+}
+
+func stickyKeyCacheKey(groupID uint) string {
+	return fmt.Sprintf("group:%d:sticky_key", groupID)
+}
+
+// ClearStickyKey clears the sticky key binding for a group.
+func (p *KeyProvider) ClearStickyKey(groupID uint) {
+	if err := p.store.Delete(stickyKeyCacheKey(groupID)); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"groupID": groupID,
+			"error":   err,
+		}).Debug("Failed to clear sticky key")
 	}
 }
 
@@ -85,6 +104,96 @@ func (p *KeyProvider) SelectKey(groupID uint) (*models.APIKey, error) {
 	}
 
 	return apiKey, nil
+}
+
+// SelectKeyWithStrategy selects an API key using the group's effective key selection strategy.
+func (p *KeyProvider) SelectKeyWithStrategy(group *models.Group) (*models.APIKey, error) {
+	if group == nil {
+		return nil, fmt.Errorf("group is nil")
+	}
+
+	if group.EffectiveConfig.KeySelectionStrategy != KeySelectionStrategySticky {
+		return p.SelectKey(group.ID)
+	}
+
+	timeoutMinutes := group.EffectiveConfig.StickyKeyIdleTimeoutMinutes
+	if timeoutMinutes <= 0 {
+		timeoutMinutes = 30
+	}
+	ttl := time.Duration(timeoutMinutes) * time.Minute
+	cacheKey := stickyKeyCacheKey(group.ID)
+
+	if keyIDBytes, err := p.store.Get(cacheKey); err == nil {
+		if apiKey, ok := p.getStickyKey(group.ID, string(keyIDBytes), ttl); ok {
+			return apiKey, nil
+		}
+		p.ClearStickyKey(group.ID)
+	} else if !errors.Is(err, store.ErrNotFound) {
+		logrus.WithFields(logrus.Fields{
+			"groupID": group.ID,
+			"error":   err,
+		}).Debug("Failed to read sticky key, falling back to round-robin")
+	}
+
+	apiKey, err := p.SelectKey(group.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := p.store.Set(cacheKey, []byte(strconv.FormatUint(uint64(apiKey.ID), 10)), ttl); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"groupID": group.ID,
+			"keyID":   apiKey.ID,
+			"error":   err,
+		}).Debug("Failed to store sticky key")
+	}
+
+	return apiKey, nil
+}
+
+func (p *KeyProvider) getStickyKey(groupID uint, keyIDStr string, ttl time.Duration) (*models.APIKey, bool) {
+	keyID, err := strconv.ParseUint(keyIDStr, 10, 64)
+	if err != nil {
+		return nil, false
+	}
+
+	keyHashKey := fmt.Sprintf("key:%d", keyID)
+	keyDetails, err := p.store.HGetAll(keyHashKey)
+	if err != nil || keyDetails["status"] != models.KeyStatusActive || keyDetails["key_string"] == "" {
+		return nil, false
+	}
+	if keyDetails["group_id"] != fmt.Sprint(groupID) {
+		return nil, false
+	}
+
+	failureCount, _ := strconv.ParseInt(keyDetails["failure_count"], 10, 64)
+	createdAt, _ := strconv.ParseInt(keyDetails["created_at"], 10, 64)
+
+	decryptedKeyValue, err := p.encryptionSvc.Decrypt(keyDetails["key_string"])
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"keyID": keyID,
+			"error": err,
+		}).Debug("Failed to decrypt sticky key value, using as-is")
+		decryptedKeyValue = keyDetails["key_string"]
+	}
+
+	if err := p.store.Set(stickyKeyCacheKey(groupID), []byte(keyIDStr), ttl); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"groupID": groupID,
+			"keyID":   keyID,
+			"error":   err,
+		}).Debug("Failed to refresh sticky key TTL")
+	}
+
+	return &models.APIKey{
+		ID:           uint(keyID),
+		KeyValue:     decryptedKeyValue,
+		Status:       keyDetails["status"],
+		FailureCount: failureCount,
+		GroupID:      groupID,
+		CreatedAt:    time.Unix(createdAt, 0),
+	}, true
 }
 
 // UpdateStatus 异步地提交一个 Key 状态更新任务。

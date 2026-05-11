@@ -34,9 +34,14 @@ func NewSystemSettingsManager() *SystemSettingsManager {
 }
 
 func validateStringSettingValue(key, val string) error {
-	if key == "failover_status_codes" {
+	switch key {
+	case "failover_status_codes":
 		if _, err := failover.ParseStatusCodeMatcher(val); err != nil {
 			return fmt.Errorf("invalid value for %s (%q): %w", key, val, err)
+		}
+	case "key_selection_strategy":
+		if val != "round_robin" && val != "sticky" {
+			return fmt.Errorf("invalid value for %s (%q): must be round_robin or sticky", key, val)
 		}
 	}
 	return nil
@@ -427,6 +432,8 @@ func (sm *SystemSettingsManager) DisplaySystemConfig(settings types.SystemSettin
 	logrus.Infof("    Max Retries: %d", settings.MaxRetries)
 	logrus.Infof("    Blacklist Threshold: %d", settings.BlacklistThreshold)
 	logrus.Infof("    Failover Status Codes: %s", settings.FailoverStatusCodes)
+	logrus.Infof("    Key Selection Strategy: %s", settings.KeySelectionStrategy)
+	logrus.Infof("    Sticky Key Idle Timeout: %d minutes", settings.StickyKeyIdleTimeoutMinutes)
 	logrus.Infof("    Key Validation Interval: %d minutes", settings.KeyValidationIntervalMinutes)
 	logrus.Info("====================================")
 	logrus.Info("")

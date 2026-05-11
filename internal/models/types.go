@@ -36,6 +36,8 @@ type GroupConfig struct {
 	MaxRetries                   *int    `json:"max_retries,omitempty"`
 	BlacklistThreshold           *int    `json:"blacklist_threshold,omitempty"`
 	FailoverStatusCodes          *string `json:"failover_status_codes,omitempty"`
+	KeySelectionStrategy         *string `json:"key_selection_strategy,omitempty"`
+	StickyKeyIdleTimeoutMinutes  *int    `json:"sticky_key_idle_timeout_minutes,omitempty"`
 	KeyValidationIntervalMinutes *int    `json:"key_validation_interval_minutes,omitempty"`
 	KeyValidationConcurrency     *int    `json:"key_validation_concurrency,omitempty"`
 	KeyValidationTimeoutSeconds  *int    `json:"key_validation_timeout_seconds,omitempty"`

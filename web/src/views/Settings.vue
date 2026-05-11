@@ -12,6 +12,7 @@ import {
   NIcon,
   NInput,
   NInputNumber,
+  NSelect,
   NSpace,
   NSwitch,
   NTooltip,
@@ -28,6 +29,10 @@ const formRef = ref();
 const form = ref<Record<string, string | number | boolean>>({});
 const isSaving = ref(false);
 const message = useMessage();
+const keySelectionStrategyOptions = [
+  { label: "round_robin", value: "round_robin" },
+  { label: "sticky", value: "sticky" },
+];
 
 fetchSettings();
 
@@ -153,6 +158,13 @@ function generateValidationRules(item: Setting): FormItemRule[] {
                 <proxy-keys-input
                   v-else-if="item.key === 'proxy_keys'"
                   v-model="form[item.key] as string"
+                  :placeholder="t('settings.inputContent')"
+                  size="small"
+                />
+                <n-select
+                  v-else-if="item.key === 'key_selection_strategy'"
+                  v-model:value="form[item.key] as string"
+                  :options="keySelectionStrategyOptions"
                   :placeholder="t('settings.inputContent')"
                   size="small"
                 />
