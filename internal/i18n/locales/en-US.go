@@ -171,6 +171,8 @@ var MessagesEnUS = map[string]string{
 	"config.key_selection_strategy_desc":          "API key selection strategy: round_robin uses existing rotation; sticky reuses the same key within a sliding idle window.",
 	"config.sticky_key_idle_timeout_minutes":      "Sticky Key Idle Window (minutes)",
 	"config.sticky_key_idle_timeout_minutes_desc": "When using sticky strategy, reuse the same key within this idle window; rotate again after timeout or key failure.",
+	"config.sticky_key_max_use_count":             "Sticky Key Max Use Count",
+	"config.sticky_key_max_use_count_desc":        "Under sticky strategy, force rotation to the next key after this many reuses; 0 means unlimited.",
 	"config.key_validation_interval":              "Key Validation Interval (minutes)",
 	"config.key_validation_interval_desc":         "Default interval (minutes) for background key validation.",
 	"config.key_validation_concurrency":           "Key Validation Concurrency",

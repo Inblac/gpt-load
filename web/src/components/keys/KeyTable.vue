@@ -434,6 +434,20 @@ async function copyAllKeys() {
   keysApi.exportKeys(props.selectedGroup.id, "all");
 }
 
+async function copyPageKeys() {
+  if (keys.value.length === 0) {
+    window.$message.warning(t("keys.noPageKeysToCopy"));
+    return;
+  }
+  const text = keys.value.map(k => k.key_value).join("\n");
+  const success = await copy(text);
+  if (success) {
+    window.$message.success(t("keys.pageKeysCopied", { count: keys.value.length }));
+  } else {
+    window.$message.error(t("keys.copyFailed"));
+  }
+}
+
 async function copyValidKeys() {
   if (!props.selectedGroup?.id) {
     return;
@@ -670,6 +684,11 @@ function resetPage() {
               {{ t("common.search") }}
             </n-button>
           </n-input-group>
+          <n-button size="small" tertiary @click="copyPageKeys" :title="t('keys.copyPageKeys')">
+            <template #icon>
+              <n-icon :component="CopyOutline" />
+            </template>
+          </n-button>
           <n-dropdown :options="moreOptions" trigger="click" @select="handleMoreAction">
             <n-button size="small" tertiary>
               <template #icon>

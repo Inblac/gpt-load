@@ -171,6 +171,8 @@ var MessagesZhCN = map[string]string{
 	"config.key_selection_strategy_desc":          "API Key 选择策略：round_robin 为现有轮询；sticky 为滑动窗口内复用同一个 Key。",
 	"config.sticky_key_idle_timeout_minutes":      "粘性 Key 空闲窗口（分钟）",
 	"config.sticky_key_idle_timeout_minutes_desc": "sticky 策略下，同一分组在该空闲窗口内复用同一个 Key；超过窗口或 Key 失败后重新轮询。",
+	"config.sticky_key_max_use_count":             "粘性 Key 最大使用次数",
+	"config.sticky_key_max_use_count_desc":        "sticky 策略下，同个 Key 被复用达到该次数后强制切换到下一个 Key；0 表示不限制。",
 	"config.key_validation_interval":              "密钥验证间隔（分钟）",
 	"config.key_validation_interval_desc":         "后台验证密钥的默认间隔（分钟）。",
 	"config.key_validation_concurrency":           "密钥验证并发数",

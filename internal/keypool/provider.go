@@ -122,12 +122,33 @@ func (p *KeyProvider) SelectKeyWithStrategy(group *models.Group) (*models.APIKey
 	}
 	ttl := time.Duration(timeoutMinutes) * time.Minute
 	cacheKey := stickyKeyCacheKey(group.ID)
+	maxUseCount := group.EffectiveConfig.StickyKeyMaxUseCount
 
 	if keyIDBytes, err := p.store.Get(cacheKey); err == nil {
-		if apiKey, ok := p.getStickyKey(group.ID, string(keyIDBytes), ttl); ok {
+		stickyKeyID, useCount := parseStickyValue(string(keyIDBytes))
+
+		if maxUseCount > 0 && useCount >= maxUseCount {
+			logrus.WithFields(logrus.Fields{
+				"groupID":     group.ID,
+				"keyID":       stickyKeyID,
+				"useCount":    useCount,
+				"maxUseCount": maxUseCount,
+			}).Debug("Sticky key reached max use count, rotating to next key")
+			p.ClearStickyKey(group.ID)
+		} else if apiKey, ok := p.getStickyKey(group.ID, stickyKeyID, ttl); ok {
+			newCount := useCount + 1
+			newValue := fmt.Sprintf("%d:%d", stickyKeyID, newCount)
+			if err := p.store.Set(cacheKey, []byte(newValue), ttl); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"groupID": group.ID,
+					"keyID":   stickyKeyID,
+					"error":   err,
+				}).Debug("Failed to update sticky key count")
+			}
 			return apiKey, nil
+		} else {
+			p.ClearStickyKey(group.ID)
 		}
-		p.ClearStickyKey(group.ID)
 	} else if !errors.Is(err, store.ErrNotFound) {
 		logrus.WithFields(logrus.Fields{
 			"groupID": group.ID,
@@ -140,7 +161,8 @@ func (p *KeyProvider) SelectKeyWithStrategy(group *models.Group) (*models.APIKey
 		return nil, err
 	}
 
-	if err := p.store.Set(cacheKey, []byte(strconv.FormatUint(uint64(apiKey.ID), 10)), ttl); err != nil {
+	newValue := fmt.Sprintf("%d:%d", apiKey.ID, 1)
+	if err := p.store.Set(cacheKey, []byte(newValue), ttl); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"groupID": group.ID,
 			"keyID":   apiKey.ID,
@@ -151,9 +173,19 @@ func (p *KeyProvider) SelectKeyWithStrategy(group *models.Group) (*models.APIKey
 	return apiKey, nil
 }
 
-func (p *KeyProvider) getStickyKey(groupID uint, keyIDStr string, ttl time.Duration) (*models.APIKey, bool) {
-	keyID, err := strconv.ParseUint(keyIDStr, 10, 64)
-	if err != nil {
+// parseStickyValue parses the sticky cache value in "keyID" or "keyID:useCount" format.
+func parseStickyValue(s string) (keyID uint, useCount int) {
+	parts := strings.SplitN(s, ":", 2)
+	parsed, _ := strconv.ParseUint(parts[0], 10, 64)
+	keyID = uint(parsed)
+	if len(parts) == 2 {
+		useCount, _ = strconv.Atoi(parts[1])
+	}
+	return
+}
+
+func (p *KeyProvider) getStickyKey(groupID uint, keyID uint, ttl time.Duration) (*models.APIKey, bool) {
+	if keyID == 0 {
 		return nil, false
 	}
 
@@ -178,16 +210,8 @@ func (p *KeyProvider) getStickyKey(groupID uint, keyIDStr string, ttl time.Durat
 		decryptedKeyValue = keyDetails["key_string"]
 	}
 
-	if err := p.store.Set(stickyKeyCacheKey(groupID), []byte(keyIDStr), ttl); err != nil {
-		logrus.WithFields(logrus.Fields{
-			"groupID": groupID,
-			"keyID":   keyID,
-			"error":   err,
-		}).Debug("Failed to refresh sticky key TTL")
-	}
-
 	return &models.APIKey{
-		ID:           uint(keyID),
+		ID:           keyID,
 		KeyValue:     decryptedKeyValue,
 		Status:       keyDetails["status"],
 		FailureCount: failureCount,

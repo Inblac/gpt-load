@@ -171,6 +171,8 @@ var MessagesJaJP = map[string]string{
 	"config.key_selection_strategy_desc":          "APIキー選択戦略：round_robin は既存のローテーション、sticky はスライド式アイドル時間内で同じキーを再利用します。",
 	"config.sticky_key_idle_timeout_minutes":      "Stickyキーのアイドル時間（分）",
 	"config.sticky_key_idle_timeout_minutes_desc": "sticky 戦略では、このアイドル時間内で同じキーを再利用し、タイムアウトまたはキー失敗後に再度ローテーションします。",
+	"config.sticky_key_max_use_count":             "Stickyキー最大使用回数",
+	"config.sticky_key_max_use_count_desc":        "sticky 戦略で、この回数だけ同じキーを再利用した後、強制的に次のキーにローテーションします；0 は無制限。",
 	"config.key_validation_interval":              "キー検証間隔（分）",
 	"config.key_validation_interval_desc":         "バックグラウンドキー検証のデフォルト間隔（分）。",
 	"config.key_validation_concurrency":           "キー検証並行数",
