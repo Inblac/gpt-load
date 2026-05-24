@@ -2,8 +2,11 @@
 package middleware
 
 import (
+	"bytes"
 	"crypto/subtle"
+	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -270,6 +273,25 @@ func extractAuthKey(c *gin.Context) string {
 	// X-Goog-Api-Key
 	if key := c.GetHeader("X-Goog-Api-Key"); key != "" {
 		return key
+	}
+
+	// 从请求体中提取 api_key 字段（JSON 格式，优先级最低）
+	if c.Request.Body != nil {
+		bodyBytes, err := io.ReadAll(c.Request.Body)
+		if err == nil {
+			c.Request.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+
+			var bodyMap map[string]any
+			if json.Unmarshal(bodyBytes, &bodyMap) == nil {
+				if key, ok := bodyMap["api_key"].(string); ok && key != "" {
+					delete(bodyMap, "api_key")
+					cleanedBody, _ := json.Marshal(bodyMap)
+					c.Request.Body = io.NopCloser(bytes.NewReader(cleanedBody))
+					c.Request.ContentLength = int64(len(cleanedBody))
+					return key
+				}
+			}
+		}
 	}
 
 	return ""
