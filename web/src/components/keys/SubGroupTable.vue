@@ -304,7 +304,7 @@ function formatNumber(num: number): string {
                         <span class="info-label">{{ t("keys.testModel") }}:</span>
                         <span class="info-value">{{ subGroup.group.test_model || "-" }}</span>
                       </div>
-                      <div class="info-row" v-if="subGroup.group.channel_type !== 'gemini'">
+                      <div class="info-row" v-if="subGroup.group.channel_type !== 'gemini' && subGroup.group.channel_type !== 'search'">
                         <span class="info-label">{{ t("keys.testPath") }}:</span>
                         <span class="info-value">
                           {{ subGroup.group.validation_endpoint || "-" }}

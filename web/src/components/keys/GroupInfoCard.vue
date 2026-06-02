@@ -566,7 +566,7 @@ function resetPage() {
                         {{ group?.test_model }}
                       </n-form-item>
                     </n-grid-item>
-                    <n-grid-item v-if="!isAggregateGroup && group?.channel_type !== 'gemini'">
+                    <n-grid-item v-if="!isAggregateGroup && group?.channel_type !== 'gemini' && group?.channel_type !== 'search'">
                       <n-form-item :label="`${t('keys.testPath')}：`">
                         {{ group?.validation_endpoint }}
                       </n-form-item>

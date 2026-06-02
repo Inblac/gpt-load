@@ -185,6 +185,8 @@ func GetValidationEndpoint(group *models.Group) string {
 		return "/v1/responses"
 	case "anthropic":
 		return "/v1/messages"
+	case "search":
+		return "/search"
 	default:
 		return ""
 	}

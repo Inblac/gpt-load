@@ -193,8 +193,11 @@ func (s *GroupService) CreateGroup(ctx context.Context, params GroupCreateParams
 		testModel = "-"
 	case "standard":
 		testModel = strings.TrimSpace(params.TestModel)
-		if testModel == "" {
+		if testModel == "" && channelType != "search" {
 			return nil, NewI18nError(app_errors.ErrValidation, "validation.test_model_required", nil)
+		}
+		if testModel == "" {
+			testModel = "search"
 		}
 		cleaned, err := s.validateAndCleanUpstreams(params.Upstreams)
 		if err != nil {
@@ -426,8 +429,11 @@ func (s *GroupService) UpdateGroup(ctx context.Context, id uint, params GroupUpd
 
 	if params.HasTestModel {
 		cleanedTestModel := strings.TrimSpace(params.TestModel)
-		if cleanedTestModel == "" {
+		if cleanedTestModel == "" && group.ChannelType != "search" {
 			return nil, NewI18nError(app_errors.ErrValidation, "validation.test_model_empty", nil)
+		}
+		if cleanedTestModel == "" {
+			cleanedTestModel = "search"
 		}
 		group.TestModel = cleanedTestModel
 	}
