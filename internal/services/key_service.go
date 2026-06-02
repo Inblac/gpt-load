@@ -294,7 +294,11 @@ func (s *KeyService) ListKeysInGroupQuery(groupID uint, statusFilter string, sea
 	query := s.DB.Model(&models.APIKey{}).Where("group_id = ?", groupID)
 
 	if statusFilter != "" {
-		query = query.Where("status = ?", statusFilter)
+		if statusFilter == models.KeyStatusHasFailures {
+			query = query.Where("status = ? AND failure_count > 0", models.KeyStatusActive)
+		} else {
+			query = query.Where("status = ?", statusFilter)
+		}
 	}
 
 	if searchHash != "" {

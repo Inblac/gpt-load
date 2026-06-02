@@ -84,7 +84,7 @@ export const keysApi = {
     page: number;
     page_size: number;
     key_value?: string;
-    status?: KeyStatus;
+    status?: KeyStatus | "has_failures";
   }): Promise<{
     items: APIKey[];
     pagination: {
@@ -257,7 +257,7 @@ export const keysApi = {
   // 验证分组密钥
   async validateGroupKeys(
     groupId: number,
-    status?: "active" | "invalid"
+    status?: "active" | "invalid" | "has_failures"
   ): Promise<{
     is_running: boolean;
     group_name: string;

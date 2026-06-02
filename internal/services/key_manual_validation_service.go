@@ -48,7 +48,11 @@ func (s *KeyManualValidationService) StartValidationTask(group *models.Group, st
 	var keys []models.APIKey
 	query := s.DB.Where("group_id = ?", group.ID)
 	if status != "" {
-		query = query.Where("status = ?", status)
+		if status == models.KeyStatusHasFailures {
+			query = query.Where("status = ? AND failure_count > 0", models.KeyStatusActive)
+		} else {
+			query = query.Where("status = ?", status)
+		}
 	}
 	if err := query.Find(&keys).Error; err != nil {
 		return nil, fmt.Errorf("failed to get keys for group %s with status '%s': %w", group.Name, status, err)

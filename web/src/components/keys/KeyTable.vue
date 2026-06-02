@@ -48,7 +48,7 @@ const props = defineProps<Props>();
 const keys = ref<KeyRow[]>([]);
 const loading = ref(false);
 const searchText = ref("");
-const statusFilter = ref<"all" | "active" | "invalid">("all");
+const statusFilter = ref<"all" | "active" | "invalid" | "has_failures">("all");
 const currentPage = ref(1);
 const pageSize = ref(12);
 const total = ref(0);
@@ -60,6 +60,7 @@ const confirmInput = ref("");
 const statusOptions = [
   { label: t("common.all"), value: "all" },
   { label: t("keys.valid"), value: "active" },
+  { label: t("keys.failed"), value: "has_failures" },
   { label: t("keys.invalid"), value: "invalid" },
 ];
 
@@ -83,6 +84,7 @@ const moreOptions = [
   { type: "divider" },
   { label: t("keys.validateAllKeys"), key: "validateAll" },
   { label: t("keys.validateValidKeys"), key: "validateActive" },
+  { label: t("keys.validateFailedKeys"), key: "validateFailed" },
   { label: t("keys.validateInvalidKeys"), key: "validateInvalid" },
 ];
 
@@ -177,6 +179,9 @@ function handleMoreAction(key: string) {
       break;
     case "validateActive":
       validateKeys("active");
+      break;
+    case "validateFailed":
+      validateKeys("has_failures");
       break;
     case "validateInvalid":
       validateKeys("invalid");
@@ -496,7 +501,7 @@ async function restoreAllInvalid() {
   });
 }
 
-async function validateKeys(status: "all" | "active" | "invalid") {
+async function validateKeys(status: "all" | "active" | "invalid" | "has_failures") {
   if (!props.selectedGroup?.id || testingMsg) {
     return;
   }
@@ -506,6 +511,8 @@ async function validateKeys(status: "all" | "active" | "invalid") {
     statusText = t("keys.valid");
   } else if (status === "invalid") {
     statusText = t("keys.invalid");
+  } else if (status === "has_failures") {
+    statusText = t("keys.failed");
   }
 
   testingMsg = window.$message.info(t("keys.validatingKeysMsg", { type: statusText }), {
